@@ -551,18 +551,13 @@ void Ksolve::process( const Eref& e, ProcPtr p )
 
     // Fourth, do the numerical integration for all reactions.
     //MICKY: This can be parallelized.
-   #pragma omp parallel num_threads(4)
-   {
-   cout << "hello there"<<endl;
-   #pragma omp for
-     
-    for ( vector< VoxelPools >::iterator
-            i = voxelPools_.begin(); i != voxelPools_.end(); ++i )
+    size_t nvpools = voxelPools_.size( );
+    #pragma omp parallel for
+    for ( size_t i = 0; i < nvpools; i++ )
     {
-        i->advance( p );
+        voxelPools_[i].advance( p );
     }
 
-    }
     // Finally, assemble and send the integrated values off for the Dsolve.
     if ( dsolvePtr_ )
     {
