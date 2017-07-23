@@ -228,7 +228,8 @@ elseif(WITH_BOOST)
     endif(BOOST_RANDOM_DEVICE_EXISTS)
 endif()
 
-## Setup hdf5
+# Setup hdf5. If static library path is given, use it. We use this variable
+# when building package.
 if(HDF5_STATIC_HOME)
     SET(HDF5_INCLUDE_DIRS "${HDF5_STATIC_HOME}/include")
     find_library(HDF5_LIBRARY 
@@ -275,8 +276,11 @@ ELSEIF(HDF5_FOUND AND (NOT HDF5_STATIC_HOME))
 endif(NOT HDF5_FOUND)
 
 if(HDF5_FOUND)
+    # Workaround for cmake-3.5.2
+    set(HDF_USES_SZLIB FALSE)
     add_definitions( -DUSE_HDF5 )
     include_directories( ${HDF5_INCLUDE_DIRS} )
+
 endif( HDF5_FOUND )
 
 # This is a fix for new HDF5 package on Debian/Ubuntu which installs hdf5
