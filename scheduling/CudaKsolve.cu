@@ -17,6 +17,7 @@
  */
 
 #ifdef USE_CUDA
+
 #include <stdio.h>
 #include "CudaKsolve.h"
 
@@ -35,7 +36,7 @@ inline void cuda_ksolve( double* dy, double* y, const double currentTime, const 
 
 }
 
-void voxelPoolToCudaOdeSystem( VoxelPoolsi& pool, CudaOdeSystem* pOde )
+void voxelPoolToCudaOdeSystem( VoxelPools & pool, CudaOdeSystem* pOde )
 {
     // Get the Stoich first. It contains matrices we need.
     vector< double > yvec = pool.SInitVec( );
