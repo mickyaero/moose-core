@@ -48,20 +48,14 @@
  * 		retain their state, the simulation can resume smoothly.
  */
 
-#include <typeinfo>
-
 #include "header.h"
 #include "Clock.h"
 #include "../utility/numutil.h"
-#include "../shell/Wildcard.h"
+#include "../utility/print_function.hpp"
 
-#include "../ksolve/VoxelPools.h"
-#include "../ksolve/VoxelPoolsBase.h"
-#include "../ksolve/Ksolve.h"
-
-#include "CudaKsolve.h"
-#include "timer.h"
-#include "utils.h"
+#if PARALLELIZE_CLOCK_USING_CPP11_ASYNC
+#include <future>
+#endif
 
 // Declaration of some static variables.
 const unsigned int Clock::numTicks = 32;
@@ -69,7 +63,6 @@ const unsigned int Clock::numTicks = 32;
 const double minimumDt = 1e-7;
 map< string, unsigned int > Clock::defaultTick_;
 vector< double > Clock::defaultDt_;
-
 
 ///////////////////////////////////////////////////////
 // MsgSrc definitions
@@ -339,7 +332,7 @@ const Cinfo* Clock::initCinfo()
         "The clock also starts up with some default timesteps for each "
         "of these ticks, and this can be overridden using the shell "
         "command setClock, or by directly assigning tickStep values on the "
-        "clock object. \n"
+        "clock object."
         "Which objects use which tick? As a rule of thumb, try this: \n"
         "Electrical/compartmental model calculations: Ticks 0-7 \n"
         "Tables and output objects for electrical output: Tick 8 \n"
@@ -354,57 +347,57 @@ const Cinfo* Clock::initCinfo()
         "clock ticks for the tables/fileIO objects handling output at "
         "different time-resolutions. Typically one uses tick 8 and 18.\n"
         "Here are the detailed mappings of class to tick.\n"
-        "	Class				Tick		dt \n"
-        "	DiffAmp				0		50e-6\n"
-        "	Interpol			0		50e-6\n"
-        "	PIDController			0		50e-6\n"
-        "	PulseGen			0		50e-6\n"
-        "	StimulusTable			0		50e-6\n"
-        "	testSched			0		50e-6\n"
-        "	VClamp				0		50e-6\n"
-        "	SynHandlerBase			1		50e-6\n"
-        "	SimpleSynHandler		1		50e-6\n"
-        "   STDPSynHandler		1		50e-6\n"
-        "   GraupnerBrunel2012CaPlasticitySynHandler    1		50e-6\n"
-        "   SeqSynHandler		1		50e-6\n"
+        "   Class              Tick       dt \n"
+        "   DiffAmp             0       50e-6\n"
+        "   Interpol            0       50e-6\n"
+        "   PIDController       0       50e-6\n"
+        "   PulseGen            0       50e-6\n"
+        "   StimulusTable       0       50e-6\n"
+        "   testSched           0       50e-6\n"
+        "   VClamp              0       50e-6\n"
+        "   SynHandlerBase      1       50e-6\n"
+        "   SimpleSynHandler    1       50e-6\n"
+        "   STDPSynHandler      1       50e-6\n"
+        "   GraupnerBrunel2012CaPlasticitySynHandler    1        50e-6\n"
+        "   SeqSynHandler       1       50e-6\n"
         "	CaConc				1		50e-6\n"
         "	CaConcBase			1		50e-6\n"
         "	DifShell			1		50e-6\n"
-	"	DifShellBase			1		50e-6\n"
-	"       MMPump                          1               50e-6\n"
-	"	DifBuffer			1		50e-6\n"
-	"	DifBufferBase			1		50e-6\n"
+	    "	DifShellBase		1		50e-6\n"
+	    "   MMPump              1       50e-6\n"
+	    "	DifBuffer			1		50e-6\n"
+	    "	DifBufferBase		1		50e-6\n"
         "	MgBlock				1		50e-6\n"
         "	Nernst				1		50e-6\n"
         "	RandSpike			1		50e-6\n"
         "	ChanBase			2		50e-6\n"
         "	IntFire				2		50e-6\n"
         "	IntFireBase			2		50e-6\n"
-        "	LIF				2		50e-6\n"
-        "	QIF				2		50e-6\n"
+        "	LIF					2		50e-6\n"
+        "	QIF					2		50e-6\n"
         "	ExIF				2		50e-6\n"
         "	AdExIF				2		50e-6\n"
-        "	AdThreshIF				2		50e-6\n"
+        "	AdThreshIF			2		50e-6\n"
         "	IzhIF				2		50e-6\n"
-        "	IzhikevichNrn			2		50e-6\n"
+        "	IzhikevichNrn		2		50e-6\n"
         "	SynChan				2		50e-6\n"
-        "	NMDAChan				2		50e-6\n"
+        "	NMDAChan			2		50e-6\n"
         "	GapJunction			2		50e-6\n"
         "	HHChannel			2		50e-6\n"
         "	HHChannel2D			2		50e-6\n"
         "	Leakage				2		50e-6\n"
-        "	MarkovChannel			2		50e-6\n"
-        "	MarkovGslSolver			2		50e-6\n"
-        "	MarkovRateTable			2		50e-6\n"
-        "	MarkovSolver			2		50e-6\n"
-        "	MarkovSolverBase		2		50e-6\n"
-        "	RC				2		50e-6\n"
-        "	Compartment (init)		3		50e-6\n"
+        "	MarkovChannel		2		50e-6\n"
+        "	MarkovGslSolver		2		50e-6\n"
+        "	MarkovRateTable		2		50e-6\n"
+        "	MarkovSolver		2		50e-6\n"
+        "	MarkovSolverBase	2		50e-6\n"
+        "	RC					2		50e-6\n"
+        "	Compartment (init)	3		50e-6\n"
         "	CompartmentBase (init )		3		50e-6\n"
         "	SymCompartment	(init)		3		50e-6\n"
-        "	Compartment 			4		50e-6\n"
-        "	CompartmentBase			4		50e-6\n"
-        "	SymCompartment			4		50e-6\n"
+        "	Compartment 		4		50e-6\n"
+        "	CompartmentBase		4		50e-6\n"
+        "	SymCompartment		4		50e-6\n"
         "	SpikeGen			5		50e-6\n"
         "	HSolve				6		50e-6\n"
         "	SpikeStats			7		50e-6\n"
@@ -420,23 +413,23 @@ const Cinfo* Clock::initCinfo()
         "	Pool				13		0.1\n"
         "	PoolBase			13		0.1\n"
         "	CplxEnzBase			14		0.1\n"
-        "	Enz				14		0.1\n"
+        "	Enz					14		0.1\n"
         "	EnzBase				14		0.1\n"
         "	MMenz				14		0.1\n"
         "	Reac				14		0.1\n"
         "	ReacBase			14		0.1\n"
-        "	Gsolve	(init)			15		0.1\n"
-        "	Ksolve	(init)			15		0.1\n"
+        "	Gsolve	(init)		15		0.1\n"
+        "	Ksolve	(init)		15		0.1\n"
         "	Gsolve				16		0.1\n"
         "	Ksolve				16		0.1\n"
         "	Stats				17		0.1\n"
         "	Table2				18		1\n"
         "	Streamer			19		10\n"
 
-        "	HDF5DataWriter			30		1\n"
-        "	HDF5WriterBase			30		1\n"
+        "	HDF5DataWriter		30		1\n"
+        "	HDF5WriterBase		30		1\n"
         "	NSDFWriter			30		1\n"
-        "       PyRun                           30              1\n"
+        "   PyRun           	30      1\n"
         "	PostMaster			31		0.01\n"
         "	\n"
         "	Note that the other classes are not scheduled at all.",
@@ -710,7 +703,9 @@ void Clock::handleStart( const Eref& e, double runtime, bool notify )
     if ( stride_ == 0 || stride_ == ~0U )
         stride_ = 1;
     unsigned long n = round( runtime / ( stride_ * dt_ ) );
+
     handleStep( e, n );
+
 }
 
 void Clock::handleStep( const Eref& e, unsigned long numSteps )
@@ -731,57 +726,46 @@ void Clock::handleStep( const Eref& e, unsigned long numSteps )
     assert( activeTicks_.size() == activeTicksMap_.size() );
     nSteps_ += numSteps;
     runTime_ = nSteps_ * dt_;
-
-    /**
-     * @brief  We access Ksolve here and extract all VoxelPools. Using them, we
-     * build a datastructure to send over GPU.
-     */
-    vector< ObjId > elems;
-    wildcardFind( "/##[TYPE=Ksolve]", elems );
-    assert( elems.size( ) == 1 );
-    cout << "Debug: Total " << elems.size( ) << " ksolves are found " << endl;
-    ObjId ks = elems[ 0 ];
-    Ksolve* ksolve = reinterpret_cast< Ksolve* >( ks.eref().data( ) );
-    vector<VoxelPools> pools = ksolve->getVoxelPools( );
-
-    for ( auto vp : pools )
-    {
-        CudaOdeSystem* pOde = new CudaOdeSystem( );
-        voxelPoolToCudaOdeSystem( vp, pOde );
-        pOde->print( );
-    }
-
-
-
-#if 0
-//Allocating memory onto gpu.
-
-double *d_dy, *d_y, *d_currentTime, *d_time;
-size_t *d_n;
-
-checkCudaErrors(cudaMalloc( (void**)&d_dy, sizeof(double) * related_to_voxel1 ));
-checkCudaErrors(cudaMalloc( (void**)&d_y, sizeof(double) * related_to_voxel2 ));
-checkCudaErrors(cudaMalloc( (void**)&d_currentTime, sizeof(double)*1 ));
-checkCudaErrors(cudaMalloc( (void**)&d_time, sizeof(double) * 1 ));
-checkCudaErrors(cudaMalloc( (void**)&d_n, sizeof(size_t) * 1 ));
-
-//Copying data to gpu
-
-checkCudaErrors(cudaMemcpy( d_dy, dy, sizeof(double) * related_to_voxel1, cudaMemcpyHostToDevice ));
-checkCudaErrors(cudaMemcpy( d_y, y, sizeof(double) * related_to_voxel2, cudaMemcpyHostToDevice ));
-checkCudaErrors(cudaMemcpy( d_currentTime, currentTime, sizeof(double) * 1, cudaMemcpyHostToDevice ));
-checkCudaErrors(cudaMemcpy( d_time, time, sizeof(double) * 1, cudaMemcpyHostToDevice ));
-checkCudaErrors(cudaMemcpy( d_n, n, sizeof(size_t) * 1, cudaMemcpyHostToDevice ));
-
-#endif
-
-
     for ( isRunning_ = (activeTicks_.size() > 0 );
             isRunning_ && currentStep_ < nSteps_; currentStep_ += stride_ )
     {
         // Curr time is end of current step.
         unsigned long endStep = currentStep_ + stride_;
         currentTime_ = info_.currTime = dt_ * endStep;
+
+#if PARALLELIZE_CLOCK_USING_CPP11_ASYNC
+
+        // NOTE: It does not produce very promising results. The challenge here
+        // is doing load-balancing.
+        // TODO: To start with, we can put one solver on one thread and everything
+        // else onto 1 thread. Each Hsove, Ksolve, and Gsolve can take its own
+        // thread and rest are on different threads.
+
+        unsigned int nTasks = activeTicks_.size( );
+        unsigned int numThreads_ = 3;
+        unsigned int blockSize = 1 + (nTasks / numThreads_);
+
+        for( unsigned int i = 0; i < numThreads_; ++i  )
+        {
+            std::async( std::launch::async
+                , [this,blockSize,i,nTasks,endStep,e]
+                {
+                    unsigned int mapI = i * blockSize;
+                    // Get the block we want to run in paralle.
+                    for( unsigned int ii = i * blockSize; ii < min((i+1) * blockSize, nTasks); ii++ )
+                    {
+                        unsigned int j = activeTicks_[ ii ];
+                        if( endStep % j == 0  )
+                        {
+                             info_.dt = j * dt_;
+                             processVec( )[ activeTicksMap_[mapI] ]->send( e, &info_ );
+                        }
+                        mapI++;
+                    }
+                }
+            );
+        }
+#else
         vector< unsigned int >::const_iterator k = activeTicksMap_.begin();
         for ( vector< unsigned int>::iterator j =
                     activeTicks_.begin(); j != activeTicks_.end(); ++j )
@@ -789,19 +773,11 @@ checkCudaErrors(cudaMemcpy( d_n, n, sizeof(size_t) * 1, cudaMemcpyHostToDevice )
             if ( endStep % *j == 0 )
             {
                 info_.dt = *j * dt_;
-                if( *k == 16 )
-                {
-                    SrcFinfo1<ProcPtr>* elem = processVec()[*k];
-                    //cout << elem->rttiType( ) << endl;
-                    //cout << activeTicksMap_[ *k ] << endl;
-                    //cuda_ksolve( NULL,  NULL, currentTime_, currentTime_ + runTime_, 1);
-                    //cuda_dum(d_dum);
-                }
-                else
-                    processVec()[*k]->send( e, &info_ );
+                processVec()[*k]->send( e, &info_ );
             }
             ++k;
         }
+#endif
 
         // When 10% of simulation is over, notify user when notify_ is set to
         // true.
@@ -812,48 +788,15 @@ checkCudaErrors(cudaMemcpy( d_n, n, sizeof(size_t) * 1, cudaMemcpyHostToDevice )
                 time( &rawtime );
                 timeinfo = localtime( &rawtime );
                 strftime(now, 80, "%c", timeinfo);
-                cout << "@ " << now << ": " << 100 * currentTime_ / runTime_ 
+                cout << "@ " << now << ": " << 100 * currentTime_ / runTime_
                     << "% of total " << runTime_ << " seconds is over." << endl;
             }
         }
+
+        if ( activeTicks_.size() == 0 )
+            currentTime_ = runTime_;
     }
 
-    if ( activeTicks_.size() == 0 )
-        currentTime_ = runTime_;
-
-
-    cout << "At the end of simulation " << endl;
-
-#if 0
-    for(int eg = 0; eg < numVoxelPools; ++eg)
-    {
-        VoxelPoolsBase* vp = ksolve->pools(eg);
-        
-        vp->setN(0, 0);
-        vp->setN(1, 0);
-    }
-#endif
-
-#if 0
-//Transferring back the data to cpu
-
-checkCudaErrors(cudaMemcpy( dy, d_dy, sizeof(double) * related_to_voxel1, cudaMemcpyDeviceToHost ));
-checkCudaErrors(cudaMemcpy( y, d_y, sizeof(double) * related_to_voxel2, cudaMemcpyDeviceToHost ));
-checkCudaErrors(cudaMemcpy( currentTime, d_currentTime, sizeof(double) * 1, cudaMemcpyDeviceToHost ));
-checkCudaErrors(cudaMemcpy( time, d_time, sizeof(double) * 1, cudaMemcpyDeviceToHost ));
-checkCudaErrors(cudaMemcpy( n, d_n, sizeof(size_t) * 1, cudaMemcpyDeviceToHost ));
-
-//Freeing up the memory on gpu
-
-checkCudaErrors(cudaFree( d_dy ));
-checkCudaErrors(cudaFree( d_y ));
-checkCudaErrors(cudaFree( d_currentTime ));
-checkCudaErrors(cudaFree( d_time ));
-checkCudaErrors(cudaFree( d_n ));
-
-#endif
-
-    // Finish all.
     info_.dt = dt_;
     isRunning_ = false;
     finished()->send( e );
@@ -1099,5 +1042,3 @@ unsigned int Clock::lookupDefaultTick( const string& className )
     }
     return i->second;
 }
-
-
