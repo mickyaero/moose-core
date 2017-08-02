@@ -52,6 +52,14 @@
 #include "Clock.h"
 #include "../utility/numutil.h"
 #include "../utility/print_function.hpp"
+#include "../shell/Wildcard.h"
+#include "../ksolve/VoxelPools.h"
+#include "../ksolve/VoxelPoolsBase.h"
+#include "../ksolve/Ksolve.h"
+
+#include "CudaKsolve.h"
+#include "cuda_ode_solver.h"
+
 
 #if PARALLELIZE_CLOCK_USING_CPP11_ASYNC
 #include <future>
@@ -716,6 +724,24 @@ void Clock::handleStep( const Eref& e, unsigned long numSteps )
         cout << "Clock::handleStart: Warning: simulation already in progress.\n Command ignored\n";
         return;
     }
+
+// Data extraction starts here 
+    vector< ObjId > elems;
+    wildcardFind( "/##[TYPE=Ksolve]", elems);
+    assert( elems.size( ) == 1);
+    cout << "Debug: Total " << elems.size( ) << " ksolves are found " << endl;
+    ObjId ks = elems[ 0 ];
+    Ksolve* ksolve = reinterpret_cast< Ksolve* >( ks.eref().data( ) );
+    vector<VoxelPools> pools = ksolve->getVoxelPools( );
+    for ( auto vp : pools )
+    {
+        CudaOdeSystem* pOde = new CudaOdeSystem( );
+        voxelPoolToCudaOdeSystem(vp, pOde );
+        pOde->print( );
+    }
+// Data extraction ends here
+
+
 
     time_t rawtime;
     struct tm * timeinfo;
