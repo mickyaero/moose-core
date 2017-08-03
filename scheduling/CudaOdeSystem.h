@@ -31,8 +31,11 @@ public:
         cout << " Method : " << method << endl;
         cout << " Dimentions: " << dimension << endl;
         cout << " State : ";
+        if( ! f )
+            printf( "Error. f if null" );
+
         for( size_t i = 0; i < dimension; i++ )
-            cout << f[i] << ' ';
+            cout << f[i] << " ";
         cout << endl;
         cout << "------------------------------" << endl;
     }
